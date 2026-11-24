@@ -1,10 +1,13 @@
 # Micro Metal
 
-| M5 Pro FP32 ALU (one op per lane) | Dependent latency (ns/op) | Est. ops/clock (20-core GPU at 1.62 GHz) | Est. ops/clock per core |
-|---|---:|---:|---:|
-| Add | 1.33 | 2,505 | 125.2 |
-| FMA | 1.33 | 2,447 | 122.4 |
-| `fast::exp2(-x)` | 3.16 | 1,230 | 61.5 |
+| M5 Pro ALU (one op per lane) | Precision | Dependent latency (ns/op) | Est. ops/clock (20-core GPU at 1.62 GHz) | Est. ops/clock per core |
+|---|---|---:|---:|---:|
+| Add | FP32 | 1.33 | 2,496 | 124.8 |
+| Add | FP16 | 1.33 | 4,855 | 242.8 |
+| FMA | FP32 | 1.33 | 2,451 | 122.6 |
+| FMA | FP16 | 1.33 | 4,814 | 240.7 |
+| `fast::exp2(-x)` | FP32 | 3.16 | 1,229 | 61.5 |
+| `exp2(-x)` | FP16 | 3.79 | 1,233 | 61.7 |
 
 | M5 Pro `matmul2d` inputs → FP32 | Tile (M × N × K) | Operand source | Dependent latency (ns/tile) | Est. tiles/clock (20-core GPU at 1.62 GHz) | Est. tiles/clock per core |
 |---|---:|---|---:|---:|---:|
