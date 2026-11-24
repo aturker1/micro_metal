@@ -4,6 +4,7 @@
 |---|---:|---:|---:|
 | Add | 1.33 | 2,507 | 125.4 |
 | FMA | 1.33 | 2,450 | 122.5 |
+| `fast::exp2(-x)` | 3.16 | 1,237 | 61.8 |
 
 | M5 Pro `matmul2d` BF16 → FP32 (M × N × K) | Dependent latency (ns/tile) | Est. tiles/clock (20-core GPU at 1.62 GHz) | Est. tiles/clock per core |
 |---|---:|---:|---:|

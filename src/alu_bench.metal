@@ -18,10 +18,13 @@ kernel void alu_bench(
     for (uint op = 0; op < OPS_PER_ROUND; ++op) {
       #pragma clang loop unroll(full)
       for (uint chain = 0; chain < CHAINS; ++chain) {
-#if FUSED
+#if ALU_ADD
+        values[chain] += step;
+#elif ALU_FMA
         values[chain] = fma(values[chain], scale, step);
 #else
-        values[chain] += step;
+        // Negate the input to keep the dependent chain in range.
+        values[chain] = fast::exp2(-values[chain]);
 #endif
       }
     }
