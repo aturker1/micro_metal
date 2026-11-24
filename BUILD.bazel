@@ -1,0 +1,33 @@
+load("@rules_cc//cc:cc_binary.bzl", "cc_binary")
+load("@rules_cc//cc:objc_library.bzl", "objc_library")
+
+APPLE_SILICON = [
+    "@platforms//cpu:aarch64",
+    "@platforms//os:macos",
+]
+
+genrule(
+    name = "matmul2d_shader",
+    srcs = ["src/matmul2d_bench.metal"],
+    outs = ["matmul2d_shader.h"],
+    cmd = '/bin/sh "$(location :embed_shader.sh)" "$<" > "$@"',
+    tools = ["embed_shader.sh"],
+)
+
+objc_library(
+    name = "matmul2d_bench_lib",
+    srcs = [
+        ":matmul2d_shader",
+        "src/matmul2d_bench.mm",
+    ],
+    cxxopts = ["-std=c++20"],
+    sdk_frameworks = ["Foundation", "Metal"],
+    target_compatible_with = APPLE_SILICON,
+)
+
+cc_binary(
+    name = "matmul2d_bench",
+    target_compatible_with = APPLE_SILICON,
+    visibility = ["//visibility:public"],
+    deps = [":matmul2d_bench_lib"],
+)

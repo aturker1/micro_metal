@@ -1,0 +1,2 @@
+build --compilation_mode=opt
+build --macos_minimum_os=26.2
