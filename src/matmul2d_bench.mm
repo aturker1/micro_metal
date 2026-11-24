@@ -1,6 +1,7 @@
 #import <Foundation/Foundation.h>
 #import <Metal/Metal.h>
 
+#include "gpu_clock.h"
 #include "matmul2d_shader.h"
 
 #include <algorithm>
@@ -75,7 +76,8 @@ double computePassSeconds(id<MTLCounterSampleBuffer> timestamps) {
   return double(stamps[1].timestamp - stamps[0].timestamp) * 1e-9;
 }
 
-void measure(id<MTLDevice> device, id<MTLCommandQueue> queue, NSString* source, Shape shape, id<MTLCounterSampleBuffer> timestamps) {
+void measure(id<MTLDevice> device, id<MTLCommandQueue> queue, NSString* source, Shape shape,
+             id<MTLCounterSampleBuffer> timestamps, double clockHz) {
   id<MTLComputePipelineState> pipeline = pipelineFor(device, source, shape);
   const size_t tileSize = size_t(shape.m) * shape.n;
   auto allocate = [&](size_t bytes) {
@@ -178,16 +180,16 @@ void measure(id<MTLDevice> device, id<MTLCommandQueue> queue, NSString* source, 
 
   const double deviceRepeatSeconds = timePerRepeat(throughput);
   const double latencySeconds = timePerRepeat(latency);
-  const double flopsPerRepeat = 2.0 * shape.m * shape.n * shape.k * throughput.grid.totalSIMDGroups();
-  std::printf("%2dx%2dx%-2d  %14.1f  %16.2f\n", shape.m, shape.n, shape.k, latencySeconds * 1e9,
-              flopsPerRepeat / deviceRepeatSeconds / 1e12);
+  const double callsPerClock = throughput.grid.totalSIMDGroups() / (deviceRepeatSeconds * clockHz);
+  std::printf("%2dx%2dx%-2d  %14.1f  %18.3f\n", shape.m, shape.n, shape.k, latencySeconds * 1e9, callsPerClock);
 }
 
 }  // namespace
 
-int main() {
+int main(int argc, char* argv[]) {
   @autoreleasepool {
     try {
+      const double clockHz = gpuClockHz(argc, argv);
       id<MTLDevice> device = MTLCreateSystemDefaultDevice();
       if (!device || ![device supportsFamily:MTLGPUFamilyApple10])
         throw std::runtime_error("the matmul2d microbenchmark requires an Apple10 or newer Metal GPU");
@@ -195,11 +197,11 @@ int main() {
       if (!queue) throw std::runtime_error("could not create a Metal command queue");
       NSString* source = [NSString stringWithUTF8String:matmul2dShader];
       if (!source) throw std::runtime_error("embedded Metal shader is not valid UTF-8");
-      std::printf("%s | matmul2d BF16 x BF16 -> FP32\n", device.name.UTF8String);
+      std::printf("%s | matmul2d BF16 x BF16 -> FP32 | normalized to %g MHz\n", device.name.UTF8String, clockHz / 1e6);
       id<MTLCounterSampleBuffer> timestamps = timestampBufferFor(device);
       std::printf("Median of %zu paired GPU timings\n", samplePairs);
-      std::puts("Tile MxNxK  Latency ns/call    Device TFLOP/s");
-      for (const Shape shape : shapes) measure(device, queue, source, shape, timestamps);
+      std::puts("Tile MxNxK  Latency ns/call  Calls/device clock");
+      for (const Shape shape : shapes) measure(device, queue, source, shape, timestamps, clockHz);
       std::puts("All CPU reference checks passed.");
     } catch (const std::exception& error) {
       std::fprintf(stderr, "%s\n", error.what());

@@ -18,6 +18,7 @@ objc_library(
     name = "matmul2d_bench_lib",
     srcs = [
         ":matmul2d_shader",
+        "src/gpu_clock.h",
         "src/matmul2d_bench.mm",
     ],
     cxxopts = ["-std=c++20"],
@@ -30,4 +31,31 @@ cc_binary(
     target_compatible_with = APPLE_SILICON,
     visibility = ["//visibility:public"],
     deps = [":matmul2d_bench_lib"],
+)
+
+genrule(
+    name = "alu_shader",
+    srcs = ["src/alu_bench.metal"],
+    outs = ["alu_shader.h"],
+    cmd = '/bin/sh "$(location :embed_shader.sh)" "$<" aluShader > "$@"',
+    tools = ["embed_shader.sh"],
+)
+
+objc_library(
+    name = "alu_bench_lib",
+    srcs = [
+        ":alu_shader",
+        "src/alu_bench.mm",
+        "src/gpu_clock.h",
+    ],
+    cxxopts = ["-std=c++20"],
+    sdk_frameworks = ["Foundation", "Metal"],
+    target_compatible_with = APPLE_SILICON,
+)
+
+cc_binary(
+    name = "alu_bench",
+    target_compatible_with = APPLE_SILICON,
+    visibility = ["//visibility:public"],
+    deps = [":alu_bench_lib"],
 )
